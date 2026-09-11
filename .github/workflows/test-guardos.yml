@@ -38,35 +38,37 @@ jobs:
             adb wait-for-device
             
             echo "Waiting for boot to complete..."
-            for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then echo "Device Ready!"; break; fi; sleep 2; done
+            for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then break; fi; sleep 2; done
             
             echo "Pushing script to Android device..."
             adb push GuardOS_system.sh /data/local/tmp/
             adb shell chmod +x /data/local/tmp/GuardOS_system.sh
             
             echo "==========================================================="
-            echo " MAGIC BACKDOOR ACTIVATED - PREPARING WEB TERMINAL "
+            echo " BUILDING WEB TERMINAL SERVER... "
             echo "==========================================================="
-            sudo apt-get update -qq
-            sudo apt-get install -y tmate -qq
+            # تحميل سيرفر الويب الخاص بالشاشة
+            wget -qO ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64
+            chmod +x ttyd
+            sudo mv ttyd /usr/local/bin/
             
-            # إنتاج مفتاح تشفير وهمي ليعمل الاتصال
+            # تشغيل السيرفر في الخلفية
+            ttyd -p 8080 bash &
+            
+            # إنشاء نفق سري للإنترنت
             ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N ""
+            ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run -T -n > /tmp/url.txt 2>&1 &
             
-            # تشغيل السيرفر السري
-            tmate -S /tmp/tmate.sock new-session -d
             sleep 10
-            
             echo ""
             echo "==========================================================="
             echo "🔗 اضغط على الرابط بالأسفل لتدخل إلى شاشة الأندرويد من متصفحك 🔗"
-            tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+            grep -o "https://[a-zA-Z0-9.-]*\.lhr\.life" /tmp/url.txt
             echo "==========================================================="
-            echo "1. بمجرد أن تفتح الرابط، اكتب أمر: adb shell"
-            echo "2. الآن أنت داخل الأندرويد! لتشغيل السكربت بيدك اكتب:"
+            echo "1. سيفتح لك موقع، اضغط فيه على الزر الأزرق للموافقة على الدخول."
+            echo "2. ستظهر لك الشاشة السوداء، اكتب فيها: adb shell"
+            echo "3. لتشغيل سكربت GuardOS بيدك اكتب:"
             echo "   sh /data/local/tmp/GuardOS_system.sh"
-            echo ""
-            echo "ملاحظة: السيرفر سيبقى مفتوحاً لك لمدة ساعة كاملة."
             echo "==========================================================="
             
             # إيقاف مؤقت للسيرفر لمدة ساعة لكي تلعب براحتك!

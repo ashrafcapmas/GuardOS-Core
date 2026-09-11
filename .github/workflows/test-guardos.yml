@@ -48,13 +48,21 @@ jobs:
             adb push GuardOS_system.sh /data/local/tmp/
             adb shell chmod +x /data/local/tmp/GuardOS_system.sh
             
-            # إصلاح مسارات الحماية
+            # الباتش الشامل: إيقاف قيود النظام
+            adb shell "sed -i 's/remount_system_rw/true/g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's/remount_system_ro/true/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/remount_rw ||/true ||/g' /data/local/tmp/GuardOS_system.sh"
+            
+            # الباتش الشامل: تغيير مسارات المجلدات المحمية
+            adb shell "mkdir -p /data/local/tmp/etc"
             adb shell "sed -i 's|/system/bin|/data/local/tmp|g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's|/system/etc|/data/local/tmp/etc|g' /data/local/tmp/GuardOS_system.sh"
+            
+            # الباتش الشامل: إصلاح الأعراض الجانبية لتغيير المسارات
             adb shell "sed -i 's|/data/local/tmp/sh|/system/bin/sh|g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's|find_bb() {|find_bb() {\n  echo \"/data/local/tmp/busybox\"\n  return 0|g' /data/local/tmp/GuardOS_system.sh"
             
-            # 🌟 الخدعة السحرية: نجعل السكربت يحمل ملفات x86_64 ليعمل بسرعة البرق وبشكل متكامل!
+            # الباتش الشامل: محاكاة معالج الرسيفر لتسريع التحميل
             adb shell "sed -i 's/armhf)/armhf|x86_64)/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/ROOTFS_ARCH=\"armhf\"/ROOTFS_ARCH=\"x86_64\"/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/UBUNTU_ARCH=\"armhf\"/UBUNTU_ARCH=\"amd64\"/g' /data/local/tmp/GuardOS_system.sh"
@@ -80,8 +88,7 @@ jobs:
             echo "🔗 اضغط على الرابط بالأسفل لتدخل إلى شاشة الأندرويد السريعة 🔗"
             grep -o "https://[a-zA-Z0-9.-]*\.lhr\.life" /tmp/url.txt
             echo "==========================================================="
-            echo "1. للنسخ واللصق: كليك يمين ثم Paste"
-            echo "2. اكتب كلمة:  install  ومبروك التثبيت الشامل!"
+            echo "اكتب:  install  ومبروك التثبيت الشامل!"
             echo "==========================================================="
             
             sleep 7200

@@ -1,4 +1,4 @@
-name: Android Interactive Playground
+name: Android Interactive Playground (Ultra Fast x86_64)
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Start Android Emulator and Web Terminal
+      - name: Start Ultra Fast Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -29,7 +29,7 @@ jobs:
           profile: Nexus 6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            echo "Waiting for device to be online..."
+            echo "Waiting for fast boot (2-4 minutes)..."
             adb wait-for-device
             
             echo "Requesting Root Access..."
@@ -40,25 +40,26 @@ jobs:
             echo "Waiting for boot to complete..."
             for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then break; fi; sleep 2; done
             
-            echo "Preparing Perfect Environment (BusyBox & Script Patches)..."
-            
-            # تحميل Busybox
+            echo "Preparing Perfect Environment..."
             wget -qO busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-x86_64
             adb push busybox /data/local/tmp/
             adb shell chmod +x /data/local/tmp/busybox
             
-            # رفع السكربت
             adb push GuardOS_system.sh /data/local/tmp/
             adb shell chmod +x /data/local/tmp/GuardOS_system.sh
             
-            # إصلاحات السكربت ليعمل على المحاكي
+            # إصلاح مسارات الحماية
             adb shell "sed -i 's/remount_rw ||/true ||/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's|/system/bin|/data/local/tmp|g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's|/data/local/tmp/sh|/system/bin/sh|g' /data/local/tmp/GuardOS_system.sh"
-            adb shell "sed -i 's/armhf)/armhf|x86_64)/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's|find_bb() {|find_bb() {\n  echo \"/data/local/tmp/busybox\"\n  return 0|g' /data/local/tmp/GuardOS_system.sh"
             
-            # إنشاء اختصار install السحري
+            # 🌟 الخدعة السحرية: نجعل السكربت يحمل ملفات x86_64 ليعمل بسرعة البرق وبشكل متكامل!
+            adb shell "sed -i 's/armhf)/armhf|x86_64)/g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's/ROOTFS_ARCH=\"armhf\"/ROOTFS_ARCH=\"x86_64\"/g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's/UBUNTU_ARCH=\"armhf\"/UBUNTU_ARCH=\"amd64\"/g' /data/local/tmp/GuardOS_system.sh"
+            
+            # اختصار install
             adb shell "echo 'alias install=\"sh /data/local/tmp/GuardOS_system.sh\"' > /data/local/tmp/env.sh"
             
             echo "==========================================================="
@@ -68,21 +69,19 @@ jobs:
             chmod +x ttyd
             sudo mv ttyd /usr/local/bin/
             
-            # تشغيل السيرفر مع تفعيل الاختصارات داخل الأندرويد
             ttyd -W -p 8080 adb shell -t "ENV=/data/local/tmp/env.sh sh" &
             
-            # إنشاء نفق سري
             ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N ""
             ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run -T -n > /tmp/url.txt 2>&1 &
             
             sleep 10
             echo ""
             echo "==========================================================="
-            echo "🔗 اضغط على الرابط بالأسفل لتدخل إلى شاشة الأندرويد من متصفحك 🔗"
+            echo "🔗 اضغط على الرابط بالأسفل لتدخل إلى شاشة الأندرويد السريعة 🔗"
             grep -o "https://[a-zA-Z0-9.-]*\.lhr\.life" /tmp/url.txt
             echo "==========================================================="
-            echo "1. للنسخ واللصق: استخدم الزر الأيمن للماوس واختر Paste"
-            echo "2. اكتب كلمة:  install  واضغط Enter ليعمل السكربت فوراً!"
+            echo "1. للنسخ واللصق: كليك يمين ثم Paste"
+            echo "2. اكتب كلمة:  install  ومبروك التثبيت الشامل!"
             echo "==========================================================="
             
-            sleep 3600
+            sleep 7200

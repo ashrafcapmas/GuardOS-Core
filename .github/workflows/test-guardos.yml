@@ -55,7 +55,7 @@ jobs:
             
             # تشغيل السيرفر السري
             tmate -S /tmp/tmate.sock new-session -d
-            tmate -S /tmp/tmate.sock wait tmate-ready
+            sleep 10
             
             echo ""
             echo "==========================================================="

@@ -1,4 +1,4 @@
-name: Android CI Testing for GuardOS
+name: Android Interactive Playground
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
-      - name: Start Android Emulator and Test Script
+      - name: Start Android Emulator and Web Terminal
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 29
@@ -32,30 +32,42 @@ jobs:
             echo "Waiting for device to be online..."
             adb wait-for-device
             
-            echo "Waiting for boot to complete..."
-            for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then echo "Device boot completed!"; break; fi; echo "Waiting... ($i/60)"; sleep 2; done
-            
-            echo "Checking device status..."
-            adb devices -l
-            
             echo "Requesting Root Access..."
             adb root
-            
-            echo "Waiting for root connection to stabilize..."
-            sleep 5
+            sleep 3
             adb wait-for-device
+            
+            echo "Waiting for boot to complete..."
+            for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then echo "Device Ready!"; break; fi; sleep 2; done
             
             echo "Pushing script to Android device..."
             adb push GuardOS_system.sh /data/local/tmp/
             adb shell chmod +x /data/local/tmp/GuardOS_system.sh
             
-            echo "1. Performing Syntax Check..."
-            adb shell sh -n /data/local/tmp/GuardOS_system.sh
+            echo "==========================================================="
+            echo " MAGIC BACKDOOR ACTIVATED - PREPARING WEB TERMINAL "
+            echo "==========================================================="
+            sudo apt-get update -qq
+            sudo apt-get install -y tmate -qq
             
-            echo "2. Adapting Script for CI Environment..."
-            adb shell "sed -i 's/remount_rw ||/true ||/g' /data/local/tmp/GuardOS_system.sh"
-            adb shell "sed -i 's|/system/bin|/data/local/tmp|g' /data/local/tmp/GuardOS_system.sh"
+            # إنتاج مفتاح تشفير وهمي ليعمل الاتصال
+            ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N ""
             
-            echo "3. Testing Script Execution..."
-            adb shell "echo 'exit' | sh /data/local/tmp/GuardOS_system.sh"
-            echo "Test Completed Successfully!"
+            # تشغيل السيرفر السري
+            tmate -S /tmp/tmate.sock new-session -d
+            tmate -S /tmp/tmate.sock wait tmate-ready
+            
+            echo ""
+            echo "==========================================================="
+            echo "🔗 اضغط على الرابط بالأسفل لتدخل إلى شاشة الأندرويد من متصفحك 🔗"
+            tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+            echo "==========================================================="
+            echo "1. بمجرد أن تفتح الرابط، اكتب أمر: adb shell"
+            echo "2. الآن أنت داخل الأندرويد! لتشغيل السكربت بيدك اكتب:"
+            echo "   sh /data/local/tmp/GuardOS_system.sh"
+            echo ""
+            echo "ملاحظة: السيرفر سيبقى مفتوحاً لك لمدة ساعة كاملة."
+            echo "==========================================================="
+            
+            # إيقاف مؤقت للسيرفر لمدة ساعة لكي تلعب براحتك!
+            sleep 3600

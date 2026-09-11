@@ -33,14 +33,7 @@ jobs:
             adb wait-for-device
             
             echo "Waiting for boot to complete..."
-            for i in $(seq 1 60); do
-              if adb shell getprop sys.boot_completed | grep -q 1; then
-                echo "Device boot completed!"
-                break
-              fi
-              echo "Waiting... ($i/60)"
-              sleep 2
-            done
+            for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then echo "Device boot completed!"; break; fi; echo "Waiting... ($i/60)"; sleep 2; done
             
             echo "Checking device status..."
             adb devices -l

@@ -40,22 +40,38 @@ jobs:
             echo "Waiting for boot to complete..."
             for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then break; fi; sleep 2; done
             
-            echo "Pushing script to Android device..."
+            echo "Preparing Perfect Environment (BusyBox & Script Patches)..."
+            
+            # تحميل Busybox
+            wget -qO busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-x86_64
+            adb push busybox /data/local/tmp/
+            adb shell chmod +x /data/local/tmp/busybox
+            
+            # رفع السكربت
             adb push GuardOS_system.sh /data/local/tmp/
             adb shell chmod +x /data/local/tmp/GuardOS_system.sh
+            
+            # إصلاحات السكربت ليعمل على المحاكي
+            adb shell "sed -i 's/remount_rw ||/true ||/g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's|/system/bin|/data/local/tmp|g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's|/data/local/tmp/sh|/system/bin/sh|g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's/armhf)/armhf|x86_64)/g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's|find_bb() {|find_bb() {\n  echo \"/data/local/tmp/busybox\"\n  return 0|g' /data/local/tmp/GuardOS_system.sh"
+            
+            # إنشاء اختصار install السحري
+            adb shell "echo 'alias install=\"sh /data/local/tmp/GuardOS_system.sh\"' > /data/local/tmp/env.sh"
             
             echo "==========================================================="
             echo " BUILDING WEB TERMINAL SERVER... "
             echo "==========================================================="
-            # تحميل سيرفر الويب الخاص بالشاشة
             wget -qO ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64
             chmod +x ttyd
             sudo mv ttyd /usr/local/bin/
             
-            # تشغيل السيرفر في الخلفية
-            ttyd -W -p 8080 adb shell &
+            # تشغيل السيرفر مع تفعيل الاختصارات داخل الأندرويد
+            ttyd -W -p 8080 adb shell -t "ENV=/data/local/tmp/env.sh sh" &
             
-            # إنشاء نفق سري للإنترنت
+            # إنشاء نفق سري
             ssh-keygen -t rsa -f ~/.ssh/id_rsa -q -N ""
             ssh -o StrictHostKeyChecking=no -R 80:localhost:8080 nokey@localhost.run -T -n > /tmp/url.txt 2>&1 &
             
@@ -65,11 +81,8 @@ jobs:
             echo "🔗 اضغط على الرابط بالأسفل لتدخل إلى شاشة الأندرويد من متصفحك 🔗"
             grep -o "https://[a-zA-Z0-9.-]*\.lhr\.life" /tmp/url.txt
             echo "==========================================================="
-            echo "1. سيفتح لك موقع، اضغط فيه على الزر الأزرق للموافقة على الدخول."
-            echo "2. ستظهر لك الشاشة السوداء، اكتب فيها: adb shell"
-            echo "3. لتشغيل سكربت GuardOS بيدك اكتب:"
-            echo "   sh /data/local/tmp/GuardOS_system.sh"
+            echo "1. للنسخ واللصق: استخدم الزر الأيمن للماوس واختر Paste"
+            echo "2. اكتب كلمة:  install  واضغط Enter ليعمل السكربت فوراً!"
             echo "==========================================================="
             
-            # إيقاف مؤقت للسيرفر لمدة ساعة لكي تلعب براحتك!
             sleep 3600

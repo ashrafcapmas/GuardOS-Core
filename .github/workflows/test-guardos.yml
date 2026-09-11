@@ -29,16 +29,13 @@ jobs:
           profile: Nexus 6
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           script: |
-            echo "Requesting Root Access..."
-            adb root
-            
-            echo "Waiting for root connection to stabilize..."
+            echo "Waiting for device to be online..."
             adb wait-for-device
             
             echo "Waiting for boot to complete..."
             for i in {1..60}; do
               if adb shell getprop sys.boot_completed | grep -q 1; then
-                echo "Device boot completed and root connection is stable!"
+                echo "Device boot completed!"
                 break
               fi
               echo "Waiting... ($i/60)"
@@ -47,6 +44,13 @@ jobs:
             
             echo "Checking device status..."
             adb devices -l
+            
+            echo "Requesting Root Access..."
+            adb root
+            
+            echo "Waiting for root connection to stabilize..."
+            sleep 5
+            adb wait-for-device
             
             echo "Pushing script to Android device..."
             adb push GuardOS_system.sh /data/local/tmp/

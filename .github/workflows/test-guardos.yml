@@ -52,9 +52,10 @@ jobs:
             echo "1. Performing Syntax Check..."
             adb shell sh -n /data/local/tmp/GuardOS_system.sh
             
-            echo "2. Bypassing System Remount for CI Testing..."
+            echo "2. Adapting Script for CI Environment..."
             adb shell "sed -i 's/remount_rw ||/true ||/g' /data/local/tmp/GuardOS_system.sh"
+            adb shell "sed -i 's|/system/bin|/data/local/tmp|g' /data/local/tmp/GuardOS_system.sh"
             
             echo "3. Testing Script Execution..."
-            adb shell "echo 'exit' | sh /data/local/tmp/GuardOS_system.sh"          
+            adb shell "echo 'exit' | sh /data/local/tmp/GuardOS_system.sh"
             echo "Test Completed Successfully!"

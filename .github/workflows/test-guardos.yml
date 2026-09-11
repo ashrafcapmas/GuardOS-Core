@@ -27,7 +27,8 @@ jobs:
           target: default
           arch: x86_64
           profile: Nexus 6
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          # 🌟 تمت إضافة إعدادات DNS جوجل هنا ليعمل الإنترنت في المحاكي
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -dns-server 8.8.8.8
           script: |
             echo "Waiting for fast boot (2-4 minutes)..."
             adb wait-for-device
@@ -41,6 +42,10 @@ jobs:
             for i in $(seq 1 60); do if adb shell getprop sys.boot_completed | grep -q 1; then break; fi; sleep 2; done
             
             echo "Preparing Perfect Environment..."
+            # 🌟 حقن إعدادات الإنترنت داخلياً في الأندرويد
+            adb shell "setprop net.dns1 8.8.8.8"
+            adb shell "setprop net.dns2 8.8.4.4"
+            
             wget -qO busybox https://busybox.net/downloads/binaries/1.31.0-defconfig-multiarch-musl/busybox-x86_64
             adb push busybox /data/local/tmp/
             adb shell chmod +x /data/local/tmp/busybox
@@ -48,26 +53,22 @@ jobs:
             adb push GuardOS_system.sh /data/local/tmp/
             adb shell chmod +x /data/local/tmp/GuardOS_system.sh
             
-            # الباتش الشامل: إيقاف قيود النظام
+            # الباتش الشامل
             adb shell "sed -i 's/remount_system_rw/true/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/remount_system_ro/true/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/remount_rw ||/true ||/g' /data/local/tmp/GuardOS_system.sh"
             
-            # الباتش الشامل: تغيير مسارات المجلدات المحمية
             adb shell "mkdir -p /data/local/tmp/etc"
             adb shell "sed -i 's|/system/bin|/data/local/tmp|g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's|/system/etc|/data/local/tmp/etc|g' /data/local/tmp/GuardOS_system.sh"
             
-            # الباتش الشامل: إصلاح الأعراض الجانبية لتغيير المسارات
             adb shell "sed -i 's|/data/local/tmp/sh|/system/bin/sh|g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's|find_bb() {|find_bb() {\n  echo \"/data/local/tmp/busybox\"\n  return 0|g' /data/local/tmp/GuardOS_system.sh"
             
-            # الباتش الشامل: محاكاة معالج الرسيفر لتسريع التحميل
             adb shell "sed -i 's/armhf)/armhf|x86_64)/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/ROOTFS_ARCH=\"armhf\"/ROOTFS_ARCH=\"x86_64\"/g' /data/local/tmp/GuardOS_system.sh"
             adb shell "sed -i 's/UBUNTU_ARCH=\"armhf\"/UBUNTU_ARCH=\"amd64\"/g' /data/local/tmp/GuardOS_system.sh"
             
-            # اختصار install
             adb shell "echo 'alias install=\"sh /data/local/tmp/GuardOS_system.sh\"' > /data/local/tmp/env.sh"
             
             echo "==========================================================="

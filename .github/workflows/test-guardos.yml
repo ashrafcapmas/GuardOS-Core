@@ -1,0 +1,47 @@
+name: Android CI Testing for GuardOS
+
+on:
+  push:
+    paths:
+      - 'GuardOS_system.sh'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test-on-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Enable Hardware Virtualization (KVM)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Start Android Emulator and Test Script
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 29
+          target: default
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            echo "Device is booting up..."
+            adb root
+            adb wait-for-device
+            
+            echo "Pushing script to Android device..."
+            adb push GuardOS_system.sh /data/local/tmp/
+            adb shell chmod +x /data/local/tmp/GuardOS_system.sh
+            
+            echo "1. Performing Syntax Check..."
+            adb shell sh -n /data/local/tmp/GuardOS_system.sh
+            
+            echo "2. Testing Script Execution (Dry Run)..."
+            # Since the emulator doesn't have real TV box partitions, 
+            # we just test if the script can launch and load its functions without crashing!
+            adb shell "echo 'exit' | sh /data/local/tmp/GuardOS_system.sh"
+            
+            echo "Test Completed Successfully!"
